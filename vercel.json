@@ -11,12 +11,5 @@
       "src": "/(.*)",
       "dest": "server.js"
     }
-  ],
-  "env": {
-    "PORT": "8001",
-    "MONGO_URI": "@mongo_uri",
-    "EMAIL_USER": "@email_user",
-    "EMAIL_PASS": "@email_pass",
-    "JWT_SECRET": "@jwt_secret"
-  }
+  ]
 }
