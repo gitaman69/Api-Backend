@@ -72,6 +72,41 @@ router.post(
   }
 );
 
+// ✅ Get KYC status by user email
+router.get("/kyc/status", auth, async (req, res) => {
+  try {
+    // Extract email from the logged-in user's token
+    const userEmail = req.user.email; // assuming your auth middleware sets req.user
+
+    if (!userEmail) {
+      return res.status(400).json({ success: false, message: "User email not found" });
+    }
+
+    // Find the latest KYC for this user
+    const kyc = await Kyc.findOne({ email: userEmail }).sort({ createdAt: -1 });
+
+    if (!kyc) {
+      return res.status(404).json({ success: false, message: "KYC not found" });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        status: kyc.status,
+        kycID: kyc.kycID,
+        addressProof: kyc.addressProof,
+        sitePhoto: kyc.sitePhoto,
+        submittedAt: kyc.createdAt,
+        updatedAt: kyc.updatedAt,
+      },
+    });
+  } catch (err) {
+    console.error("KYC status fetch error:", err);
+    return res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+
 // ✅ Verify / Reject KYC (protected by special password)
 router.patch("/kyc/:id/status", async (req, res) => {
   try {
