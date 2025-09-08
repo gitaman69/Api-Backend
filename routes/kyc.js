@@ -86,7 +86,18 @@ router.get("/kyc/status", auth, async (req, res) => {
     const kyc = await Kyc.findOne({ email: userEmail }).sort({ createdAt: -1 });
 
     if (!kyc) {
-      return res.status(404).json({ success: false, message: "KYC not found" });
+      // If no KYC found, return status as not_submitted
+      return res.status(200).json({
+        success: true,
+        data: {
+          status: "not_submitted",
+          kycID: null,
+          addressProof: null,
+          sitePhoto: null,
+          submittedAt: null,
+          updatedAt: null,
+        },
+      });
     }
 
     return res.status(200).json({
@@ -105,6 +116,7 @@ router.get("/kyc/status", auth, async (req, res) => {
     return res.status(500).json({ success: false, message: err.message });
   }
 });
+
 
 
 // ✅ Verify / Reject KYC (protected by special password)
