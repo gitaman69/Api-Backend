@@ -5,6 +5,7 @@ const cors = require('cors');
 const authRoutes = require('./routes/auth');
 const verificationRoutes = require('./routes/verification');
 const kycRoutes = require('./routes/kyc');
+const feedbackRoutes = require('./routes/feedback');
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use(express.json()); // ✅ Needed to parse JSON bodies from POST requests
 app.use('/auth', authRoutes);
 app.use('/user', verificationRoutes);
 app.use('/api/v1', kycRoutes); // KYC routes
+app.use("/api/feedback", feedbackRoutes);
 
 app.get("/", (req, res) => {
   res.send("EV Charging App Auth Server is Running 🚀");
