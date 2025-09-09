@@ -3,6 +3,7 @@ const express = require("express");
 const router = express.Router();
 const Verification = require("../models/Verification");
 const auth = require("../middleware/auth");
+const twilio = require("twilio");
 
 const accountSid = process.env.TWILIO_ACCOUNT_SID;
 const authToken = process.env.TWILIO_AUTH_TOKEN;
