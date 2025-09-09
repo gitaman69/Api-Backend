@@ -5,6 +5,15 @@ const upload = require("../middleware/upload"); // multer memory storage
 const uploadBufferToCloudinary = require("../utils/uploadToCloudinary");
 const Kyc = require("../models/Kyc"); // mongoose model
 const auth = require("../middleware/auth"); // your JWT auth middleware
+const nodemailer = require("nodemailer");
+
+const transporter = nodemailer.createTransport({
+  service: "gmail", // Or SMTP config if you use another provider
+  auth: {
+    user: process.env.EMAIL_USER, // your email
+    pass: process.env.EMAIL_PASS, // app password (not normal pwd!)
+  },
+});
 
 // ✅ Protected route: only logged-in users can submit KYC
 router.post(
@@ -63,6 +72,41 @@ router.post(
         addressProof: addressRes.secure_url,
         sitePhoto: siteRes.secure_url,
       });
+
+      // ✅ Send confirmation email
+      const mailOptions = {
+        from: `"EV Charging KYC" <${process.env.EMAIL_USER}>`,
+        to: email,
+        subject: "✅ Your KYC has been submitted",
+        html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; background: #f9f9f9; padding: 20px; border-radius: 10px;">
+          <h2 style="color: #2d89ef; text-align: center;">KYC Submission Successful 🚀</h2>
+          <p style="font-size: 16px; color: #333;">Hi <b>${firstName} ${lastName}</b>,</p>
+          <p style="font-size: 15px; color: #555;">
+            Your KYC documents have been successfully submitted. Our team will review your details shortly.
+          </p>
+          <div style="margin: 20px 0; padding: 15px; background: #fff; border: 1px solid #eee; border-radius: 8px;">
+            <p><b>📧 Email:</b> ${email}</p>
+            <p><b>📱 Phone:</b> ${phoneNumber}</p>
+            <p><b>📍 Address:</b> ${address}, ${pinCode}</p>
+          </div>
+          <p style="font-size: 15px; color: #555;">
+            ⏳ Please wait while we verify your documents. You will receive another update once your KYC is approved or requires changes.
+          </p>
+          <p style="text-align: center; margin-top: 20px;">
+            <a href="#" style="display: inline-block; padding: 10px 20px; background: #2d89ef; color: white; text-decoration: none; border-radius: 5px;">
+              View Status
+            </a>
+          </p>
+          <hr style="margin: 30px 0;">
+          <p style="font-size: 12px; color: #888; text-align: center;">
+            This is an automated email. Please do not reply.
+          </p>
+        </div>
+        `,
+      };
+
+      await transporter.sendMail(mailOptions);
 
       return res.status(201).json({ success: true, data: newKyc });
     } catch (err) {
@@ -150,6 +194,35 @@ router.patch("/kyc/:id/status", async (req, res) => {
     if (!updatedKyc) {
       return res.status(404).json({ success: false, message: "KYC not found" });
     }
+
+    // ✅ Send status update email
+    const mailOptions = {
+      from: `"EV Charging KYC" <${process.env.EMAIL_USER}>`,
+      to: updatedKyc.email,
+      subject: `🔔 Your KYC status has been updated to: ${status.toUpperCase()}`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; background: #f9f9f9; padding: 20px; border-radius: 10px;">
+          <h2 style="color: #2d89ef; text-align: center;">KYC Status Update</h2>
+          <p style="font-size: 16px; color: #333;">Hello <b>${updatedKyc.firstName} ${updatedKyc.lastName}</b>,</p>
+          <p style="font-size: 15px; color: #555;">
+            Your KYC application has been reviewed and the status is now:
+          </p>
+          <p style="text-align: center; font-size: 18px; font-weight: bold; color: ${status === "verified" ? "green" : "red"};">
+            ${status.toUpperCase()}
+          </p>
+          ${
+            status === "verified"
+              ? `<p style="font-size: 15px; color: #555;">✅ Congratulations! Your KYC has been successfully verified. You can now access all features of our platform.</p>`
+              : `<p style="font-size: 15px; color: #555;">❌ Unfortunately, your KYC has been rejected. Please re-submit your documents correctly.</p>`
+          }
+          <p style="margin-top: 20px; font-size: 14px; color: #888; text-align: center;">
+            This is an automated message. Please do not reply.
+          </p>
+        </div>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
 
     return res.status(200).json({ success: true, data: updatedKyc });
   } catch (err) {
