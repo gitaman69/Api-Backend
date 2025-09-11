@@ -1,28 +1,40 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const admin = require('../firebase/admin'); // import the initialized admin
 
-router.post('/save-push-token', async (req, res) => {
+router.post('/send-notification', async (req, res) => {
+  const { userId, title, body, data } = req.body;
+
+  if (!userId || !title || !body) {
+    return res.status(400).json({ message: 'User ID, title, and body are required' });
+  }
+
+  const user = await User.findById(userId);
+  if (!user || user.expoPushTokens.length === 0) {
+    return res.status(404).json({ message: 'User or tokens not found' });
+  }
+
+  const messages = user.expoPushTokens.map((token) => ({
+    token, // FCM token
+    notification: {
+      title,
+      body,
+    },
+    data: data || {},
+  }));
+
   try {
-    const { email, expoPushToken } = req.body;
-    if (!email || !expoPushToken) {
-      return res.status(400).json({ message: 'Email and token required' });
+    const responses = [];
+    for (const message of messages) {
+      const response = await admin.messaging().send(message);
+      responses.push(response);
     }
-
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    if (!user.expoPushTokens.includes(expoPushToken)) {
-      user.expoPushTokens.push(expoPushToken);
-      await user.save();
-    }
-
-    res.json({ message: 'Token saved successfully', tokens: user.expoPushTokens });
+    res.json({ message: 'Notification sent', responses });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error('Error sending FCM notification:', err);
+    res.status(500).json({ message: 'Failed to send notification', error: err.message });
   }
 });
-
 
 module.exports = router;
