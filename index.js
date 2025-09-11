@@ -6,8 +6,7 @@ const authRoutes = require('./routes/auth');
 const verificationRoutes = require('./routes/verification');
 const kycRoutes = require('./routes/kyc');
 const feedbackRoutes = require('./routes/feedback');
-const sendNot = require('./routes/sendNot');
-const pushNot = require('./routes/pushNot');
+const notificationRoutes = require('./routes/notifications');
 
 const app = express();
 
@@ -18,8 +17,7 @@ app.use('/auth', authRoutes);
 app.use('/user', verificationRoutes);
 app.use('/api/v1', kycRoutes); // KYC routes
 app.use("/api/feedback", feedbackRoutes);
-app.use("/api", sendNot);
-app.use("/api", pushNot);
+app.use("/api", notificationRoutes);
 
 app.get("/", (req, res) => {
   res.send("EV Charging App Auth Server is Running 🚀");
