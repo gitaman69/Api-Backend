@@ -2,13 +2,13 @@ const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
 
-// Route to save FCM token from frontend
+// Route to save Expo push token from frontend
 router.post('/save-push-token', async (req, res) => {
   try {
-    const { email, fcmToken } = req.body;
+    const { email, expoPushToken } = req.body;
 
-    if (!email || !fcmToken) {
-      return res.status(400).json({ message: 'Email and FCM token are required' });
+    if (!email || !expoPushToken) {
+      return res.status(400).json({ message: 'Email and token are required' });
     }
 
     const user = await User.findOne({ email });
@@ -17,18 +17,17 @@ router.post('/save-push-token', async (req, res) => {
     }
 
     // Save token if it doesn't already exist
-    if (!user.fcmTokens) user.fcmTokens = []; // initialize array if not present
-    if (!user.fcmTokens.includes(fcmToken)) {
-      user.fcmTokens.push(fcmToken);
+    if (!user.expoPushTokens.includes(expoPushToken)) {
+      user.expoPushTokens.push(expoPushToken);
       await user.save();
     }
 
     res.json({
-      message: 'FCM token saved successfully',
-      tokens: user.fcmTokens,
+      message: 'Token saved successfully',
+      tokens: user.expoPushTokens,
     });
   } catch (err) {
-    console.error('Error saving FCM token:', err);
+    console.error('Error saving push token:', err);
     res.status(500).json({ message: 'Server error' });
   }
 });
