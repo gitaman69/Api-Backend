@@ -4,6 +4,7 @@ const router = express.Router();
 const upload = require("../middleware/upload"); // multer memory storage
 const uploadBufferToCloudinary = require("../utils/uploadToCloudinary");
 const Kyc = require("../models/Kyc"); // mongoose model
+const User = require("../models/User");
 const auth = require("../middleware/auth"); // your JWT auth middleware
 const nodemailer = require("nodemailer");
 
