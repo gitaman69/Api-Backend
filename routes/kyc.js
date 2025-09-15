@@ -39,7 +39,9 @@ router.post(
 
       // Basic required-field validation
       if (!firstName || !lastName || !email || !phoneNumber) {
-        return res.status(400).json({ success: false, message: "Missing required fields" });
+        return res
+          .status(400)
+          .json({ success: false, message: "Missing required fields" });
       }
 
       const files = req.files || {};
@@ -72,6 +74,22 @@ router.post(
         addressProof: addressRes.secure_url,
         sitePhoto: siteRes.secure_url,
       });
+
+      // ✅ Find user for push
+      const user = await User.findOne({ email: email.toLowerCase() });
+      if (user) {
+        // Call your send-notification route internally
+        await fetch(`${process.env.BACKEND_URL}/api/send-notification`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            userId: user._id,
+            title: "KYC Submitted ✅",
+            body: "Your KYC has been submitted and is pending review.",
+            data: { type: "kyc_update", status: "pending" },
+          }),
+        });
+      }
 
       // ✅ Send confirmation email
       const mailOptions = {
@@ -123,7 +141,9 @@ router.get("/kyc/status", auth, async (req, res) => {
     const userEmail = req.user.email; // assuming your auth middleware sets req.user
 
     if (!userEmail) {
-      return res.status(400).json({ success: false, message: "User email not found" });
+      return res
+        .status(400)
+        .json({ success: false, message: "User email not found" });
     }
 
     // Find the latest KYC for this user
@@ -161,8 +181,6 @@ router.get("/kyc/status", auth, async (req, res) => {
   }
 });
 
-
-
 // ✅ Verify / Reject KYC (protected by special password)
 router.patch("/kyc/:id/status", async (req, res) => {
   try {
@@ -174,15 +192,21 @@ router.patch("/kyc/:id/status", async (req, res) => {
     const providedSecret = authHeader?.split(" ")[1]; // Expect: "Bearer <password>"
 
     if (!providedSecret) {
-      return res.status(401).json({ success: false, message: "No authorization provided" });
+      return res
+        .status(401)
+        .json({ success: false, message: "No authorization provided" });
     }
 
     if (providedSecret !== process.env.KYC_ADMIN_SECRET) {
-      return res.status(403).json({ success: false, message: "Invalid authorization token" });
+      return res
+        .status(403)
+        .json({ success: false, message: "Invalid authorization token" });
     }
 
     if (!["verified", "rejected"].includes(status)) {
-      return res.status(400).json({ success: false, message: "Invalid status value" });
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid status value" });
     }
 
     const updatedKyc = await Kyc.findByIdAndUpdate(
@@ -195,6 +219,21 @@ router.patch("/kyc/:id/status", async (req, res) => {
       return res.status(404).json({ success: false, message: "KYC not found" });
     }
 
+    // ✅ Find user for push
+    const user = await User.findOne({ email: updatedKyc.email });
+    if (user) {
+      await fetch(`${process.env.BACKEND_URL}/api/send-notification`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: user._id,
+          title: "KYC Status Update 🔔",
+          body: `Your KYC has been ${status}.`,
+          data: { type: "kyc_update", status },
+        }),
+      });
+    }
+
     // ✅ Send status update email
     const mailOptions = {
       from: `"EV Charging KYC" <${process.env.EMAIL_USER}>`,
@@ -203,11 +242,15 @@ router.patch("/kyc/:id/status", async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: auto; background: #f9f9f9; padding: 20px; border-radius: 10px;">
           <h2 style="color: #2d89ef; text-align: center;">KYC Status Update</h2>
-          <p style="font-size: 16px; color: #333;">Hello <b>${updatedKyc.firstName} ${updatedKyc.lastName}</b>,</p>
+          <p style="font-size: 16px; color: #333;">Hello <b>${
+            updatedKyc.firstName
+          } ${updatedKyc.lastName}</b>,</p>
           <p style="font-size: 15px; color: #555;">
             Your KYC application has been reviewed and the status is now:
           </p>
-          <p style="text-align: center; font-size: 18px; font-weight: bold; color: ${status === "verified" ? "green" : "red"};">
+          <p style="text-align: center; font-size: 18px; font-weight: bold; color: ${
+            status === "verified" ? "green" : "red"
+          };">
             ${status.toUpperCase()}
           </p>
           ${
