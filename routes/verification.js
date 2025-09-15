@@ -1,6 +1,7 @@
 // routes/verification.js
 const express = require("express");
 const router = express.Router();
+const User = require("../models/User");
 const Verification = require("../models/Verification");
 const auth = require("../middleware/auth");
 const twilio = require("twilio");
@@ -26,6 +27,7 @@ router.post("/submit", auth, async (req, res) => {
       phone,
       aadharCard,
       licenseId,
+      status: "pending",
     });
     await verification.save();
 
@@ -42,8 +44,34 @@ Status: Pending. We will notify you once it's reviewed.`;
       messagingServiceSid: messagingServiceSid,
       to: formattedPhone, // must include country code e.g. +91XXXXXXXXXX
     });
+    // ✅ Push notification (pending)
+    const notificationPayload = {
+      userId,
+      title: "📩 Verification Submitted",
+      body: "Your verification request has been submitted and is pending review.",
+      data: {
+        type: "verification_update",
+        status: "pending",
+        submittedAt: verification.createdAt.toISOString(),
+      },
+    };
 
-    res.json({ message: "Verification submitted. Status: pending" });
+    // Call internal notification route
+    const notifyRes = await fetch(
+      `${process.env.BACKEND_URL}/api/send-notification`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(notificationPayload),
+      }
+    );
+
+    const notifyData = await notifyRes.json();
+
+    res.json({
+      message: "Verification submitted. Status: pending",
+      notificationResult: notifyData,
+    });
   } catch (err) {
     res.status(500).json({ message: "Server error", error: err.message });
   }
@@ -82,6 +110,7 @@ router.post("/approve/:userId", async (req, res) => {
     if (!verification) return res.status(404).json({ message: "Not found" });
 
     verification.status = "approved";
+    verification.approvedAt = new Date();
     await verification.save();
 
     // ✅ Format phone number with +91
@@ -97,8 +126,36 @@ router.post("/approve/:userId", async (req, res) => {
       to: formattedPhone,
     });
 
-    res.json({ message: "Verification approved" });
+    // ✅ Push notify (reusing existing /send-notification route)
+    const notificationPayload = {
+      userId: verification.userId,
+      title: "✅ Verification Approved",
+      body: "Your profile has been successfully verified!",
+      data: {
+        type: "verification_update",
+        status: "approved",
+        approvedAt: verification.approvedAt.toISOString(),
+      },
+    };
+
+    // Call internal notification route
+    const notifyRes = await fetch(
+      `${process.env.BACKEND_URL}/api/send-notification`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(notificationPayload),
+      }
+    );
+
+    const notifyData = await notifyRes.json();
+
+    res.json({
+      message: "Verification approved",
+      notificationResult: notifyData,
+    });
   } catch (err) {
+    console.error("Error in approve route:", err);
     res.status(500).json({ message: "Error approving", error: err.message });
   }
 });
