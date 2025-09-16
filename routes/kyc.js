@@ -182,6 +182,26 @@ router.get("/kyc/status", auth, async (req, res) => {
   }
 });
 
+// ✅ Get all KYCs (Admin only)
+router.get("/kyc/all", async (req, res) => {
+  try {
+    const authHeader = req.headers["authorization"];
+    const providedSecret = authHeader?.split(" ")[1];
+
+    if (!providedSecret || providedSecret !== process.env.KYC_ADMIN_SECRET) {
+      return res
+        .status(403)
+        .json({ success: false, message: "Unauthorized" });
+    }
+
+    const kycs = await Kyc.find().sort({ createdAt: -1 });
+    res.status(200).json({ success: true, data: kycs });
+  } catch (err) {
+    console.error("Error fetching KYCs:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // ✅ Verify / Reject KYC (protected by special password)
 router.patch("/kyc/:id/status", async (req, res) => {
   try {

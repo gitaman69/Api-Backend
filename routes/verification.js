@@ -104,7 +104,7 @@ router.get("/status", auth, async (req, res) => {
 // Middleware to check admin password
 const checkAdminAuth = (req, res, next) => {
   const adminPassword = req.headers["authorization"];
-  if (adminPassword !== "visionEV@admin777") {
+  if (adminPassword !== process.env.KYC_ADMIN_SECRET) {
     return res.status(403).json({ message: "Forbidden: Invalid admin password" });
   }
   next();
