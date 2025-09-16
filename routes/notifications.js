@@ -103,4 +103,121 @@ router.post("/send-notification", async (req, res) => {
   }
 });
 
+// ✅ Send notification to ALL users
+router.post("/send-to-all", async (req, res) => {
+  const { title, body, data } = req.body;
+
+  if (!title || !body) {
+    return res.status(400).json({ message: "Title and body are required" });
+  }
+
+  try {
+    const users = await User.find({});
+    const responses = [];
+
+    for (const user of users) {
+      // --- Expo Notifications ---
+      if (user.expoPushTokens?.length) {
+        const expoMessages = user.expoPushTokens.map((token) => ({
+          to: token,
+          sound: "default",
+          title,
+          body,
+          data: data || {},
+        }));
+
+        const resExpo = await fetch("https://exp.host/--/api/v2/push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(expoMessages),
+        });
+        const expoData = await resExpo.json();
+        responses.push({ user: user.email, type: "expo", expoData });
+      }
+
+      // --- FCM Notifications ---
+      if (user.fcmTokens?.length) {
+        const fcmMessages = user.fcmTokens.map((token) => ({
+          token,
+          notification: { title, body },
+          data: data || {},
+        }));
+
+        for (const msg of fcmMessages) {
+          const fcmRes = await admin.messaging().send(msg);
+          responses.push({ user: user.email, type: "fcm", fcmRes });
+        }
+      }
+    }
+
+    res.json({ message: "✅ Notifications sent to all users", responses });
+  } catch (err) {
+    console.error("Error sending to all:", err);
+    res.status(500).json({ message: "❌ Failed to send to all", error: err.message });
+  }
+});
+
+// ✅ Send specific notification to each user
+// Request body format: { messages: [{ userId, title, body, data }, ...] }
+router.post("/send-specific", async (req, res) => {
+  const { messages } = req.body;
+
+  if (!messages || !Array.isArray(messages)) {
+    return res.status(400).json({ message: "Messages array is required" });
+  }
+
+  const responses = [];
+
+  try {
+    for (const msg of messages) {
+      const { userId, title, body, data } = msg;
+      if (!userId || !title || !body) continue;
+
+      const user = await User.findById(userId);
+      if (!user) {
+        responses.push({ userId, error: "User not found" });
+        continue;
+      }
+
+      // Expo
+      if (user.expoPushTokens?.length) {
+        const expoMessages = user.expoPushTokens.map((token) => ({
+          to: token,
+          sound: "default",
+          title,
+          body,
+          data: data || {},
+        }));
+
+        const resExpo = await fetch("https://exp.host/--/api/v2/push/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(expoMessages),
+        });
+        const expoData = await resExpo.json();
+        responses.push({ user: user.email, type: "expo", expoData });
+      }
+
+      // FCM
+      if (user.fcmTokens?.length) {
+        const fcmMessages = user.fcmTokens.map((token) => ({
+          token,
+          notification: { title, body },
+          data: data || {},
+        }));
+
+        for (const fmsg of fcmMessages) {
+          const fcmRes = await admin.messaging().send(fmsg);
+          responses.push({ user: user.email, type: "fcm", fcmRes });
+        }
+      }
+    }
+
+    res.json({ message: "✅ Specific notifications sent", responses });
+  } catch (err) {
+    console.error("Error sending specific:", err);
+    res.status(500).json({ message: "❌ Failed to send specific", error: err.message });
+  }
+});
+
 module.exports = router;
