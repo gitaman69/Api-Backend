@@ -101,8 +101,17 @@ router.get("/status", auth, async (req, res) => {
   }
 });
 
+// Middleware to check admin password
+const checkAdminAuth = (req, res, next) => {
+  const adminPassword = req.headers["authorization"];
+  if (adminPassword !== "visionEV@admin777") {
+    return res.status(403).json({ message: "Forbidden: Invalid admin password" });
+  }
+  next();
+};
+
 // Admin route: Approve user verification
-router.post("/approve/:userId", async (req, res) => {
+router.post("/approve/:userId", checkAdminAuth, async (req, res) => {
   try {
     const verification = await Verification.findOne({
       userId: req.params.userId,
@@ -157,6 +166,16 @@ router.post("/approve/:userId", async (req, res) => {
   } catch (err) {
     console.error("Error in approve route:", err);
     res.status(500).json({ message: "Error approving", error: err.message });
+  }
+});
+
+// Get all verifications (Admin)
+router.get("/admin/verifications", checkAdminAuth, async (req, res) => {
+  try {
+    const all = await Verification.find().sort({ createdAt: -1 });
+    res.json(all);
+  } catch (err) {
+    res.status(500).json({ message: "Server error" });
   }
 });
 
