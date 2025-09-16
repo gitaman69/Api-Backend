@@ -220,4 +220,27 @@ router.post("/send-specific", async (req, res) => {
   }
 });
 
+// 🔐 Middleware to check admin secret
+const checkAdmin = (req, res, next) => {
+  const adminSecret = process.env.KYC_ADMIN_SECRET;
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader || authHeader !== `Bearer ${adminSecret}`) {
+    return res.status(403).json({ message: "Unauthorized: Invalid admin token" });
+  }
+  next();
+};
+
+// 📌 Get all users
+router.get("/users", checkAdmin, async (req, res) => {
+  try {
+    const users = await User.find({}, "name email pushToken"); 
+    // fetch only necessary fields
+    res.json({ users });
+  } catch (err) {
+    console.error("Error fetching users:", err);
+    res.status(500).json({ message: "Error fetching users" });
+  }
+});
+
 module.exports = router;
