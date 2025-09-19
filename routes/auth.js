@@ -18,6 +18,19 @@ const transporter = nodemailer.createTransport({
 // Step 1: Request OTP
 router.post('/request-otp', async (req, res) => {
   const { email, name } = req.body;
+
+  // ✅ Special case: test user
+  if (email === process.env.TEST_USER) {
+    let testUser = await User.findOne({ email });
+    if (!testUser) {
+      testUser = new User({ email, name: "Test User" });
+    }
+    testUser.otp = "123456"; // Fixed OTP
+    testUser.otpExpiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 min
+    await testUser.save();
+
+    return res.json({ message: "Test OTP set. Use 123456 to login." });
+  }
   const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 min expiry
 
