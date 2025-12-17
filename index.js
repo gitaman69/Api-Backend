@@ -8,7 +8,7 @@ const kycRoutes = require('./routes/kyc');
 const feedbackRoutes = require('./routes/feedback');
 const notificationRoutes = require('./routes/notifications');
 const versionRoutes = require('./routes/version');
-const stationsMetaRoute = require("./routes/stationsMeta");
+const stationsMetaRoute = require('./routes/stationsMeta');
 
 const app = express();
 

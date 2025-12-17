@@ -1,5 +1,5 @@
-import express from "express";
-import { STATIONS_BACKEND_VERSION } from "../config/stationVersion";
+const express = require('express');
+const { STATIONS_BACKEND_VERSION } = require('../config/stationVersion');
 
 const router = express.Router();
 
@@ -16,4 +16,4 @@ router.get("/stations-meta", (req, res) => {
   });
 });
 
-export default router;
+module.exports = router;
