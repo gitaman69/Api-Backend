@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 
 // Replace this with your actual latest app version
-const LATEST_VERSION = "1.3.0";
+const LATEST_VERSION = "1.4.0";
 
 // GET /api/get-latest-version
 router.get('/get-latest-version', (req, res) => {
