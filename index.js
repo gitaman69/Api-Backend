@@ -9,6 +9,7 @@ const feedbackRoutes = require('./routes/feedback');
 const notificationRoutes = require('./routes/notifications');
 const versionRoutes = require('./routes/version');
 const stationsMetaRoute = require('./routes/stationsMeta');
+const missingStation = require('./routes/missingStation');
 
 const app = express();
 
@@ -22,6 +23,7 @@ app.use("/api/feedback", feedbackRoutes);
 app.use("/api", notificationRoutes);
 app.use('/api', versionRoutes);
 app.use("/api", stationsMetaRoute);
+app.use("/api", missingStation);
 
 app.get("/", (req, res) => {
   res.send("EV Charging App Auth Server is Running 🚀");
