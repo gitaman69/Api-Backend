@@ -1,2 +1,2 @@
 // Increment this number whenever station data changes
-export const STATIONS_BACKEND_VERSION = 45;
+module.exports = { STATIONS_BACKEND_VERSION: 45 };

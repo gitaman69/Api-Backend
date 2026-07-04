@@ -1,0 +1,27 @@
+name: Send Notifications Cron
+
+on:
+  schedule:
+    # Times are UTC. 03:00/08:00/14:00 UTC = 8:30/13:30/19:30 IST.
+    - cron: "0 3 * * *"
+    - cron: "0 8 * * *"
+    - cron: "0 14 * * *"
+  workflow_dispatch: {}
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call send-notifications cron endpoint
+        env:
+          BACKEND_URL: ${{ secrets.BACKEND_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          status=$(curl -s -o response.json -w "%{http_code}" -X POST \
+            "$BACKEND_URL/api/cron/send-notifications" \
+            -H "Authorization: Bearer $CRON_SECRET")
+          cat response.json
+          if [ "$status" -lt 200 ] || [ "$status" -ge 300 ]; then
+            echo "Request failed with status $status"
+            exit 1
+          fi

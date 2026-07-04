@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const User = require("../models/User");
 const admin = require("../firebase/admin"); // FCM admin
+const { sendToAllUsers } = require("../utils/pushService");
 
 // Save push token (Expo token or FCM token)
 router.post("/save-push-token", async (req, res) => {
@@ -112,44 +113,7 @@ router.post("/send-to-all", async (req, res) => {
   }
 
   try {
-    const users = await User.find({});
-    const responses = [];
-
-    for (const user of users) {
-      // --- Expo Notifications ---
-      if (user.expoPushTokens?.length) {
-        const expoMessages = user.expoPushTokens.map((token) => ({
-          to: token,
-          sound: "default",
-          title,
-          body,
-          data: data || {},
-        }));
-
-        const resExpo = await fetch("https://exp.host/--/api/v2/push/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(expoMessages),
-        });
-        const expoData = await resExpo.json();
-        responses.push({ user: user.email, type: "expo", expoData });
-      }
-
-      // --- FCM Notifications ---
-      if (user.fcmTokens?.length) {
-        const fcmMessages = user.fcmTokens.map((token) => ({
-          token,
-          notification: { title, body },
-          data: data || {},
-        }));
-
-        for (const msg of fcmMessages) {
-          const fcmRes = await admin.messaging().send(msg);
-          responses.push({ user: user.email, type: "fcm", fcmRes });
-        }
-      }
-    }
-
+    const { responses } = await sendToAllUsers(title, body, data || {});
     res.json({ message: "✅ Notifications sent to all users", responses });
   } catch (err) {
     console.error("Error sending to all:", err);
