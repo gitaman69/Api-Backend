@@ -2,10 +2,14 @@ name: Send Notifications Cron
 
 on:
   schedule:
-    # Times are UTC. 03:00/08:00/14:00 UTC = 8:30/13:30/19:30 IST.
-    - cron: "0 3 * * *"
-    - cron: "0 8 * * *"
-    - cron: "0 14 * * *"
+    # Times are UTC, offset a few minutes off the hour since GitHub Actions
+    # can delay or drop schedules landing exactly on :00 (its busiest slot).
+    # 03:07/08:07/14:07 UTC = ~8:37/13:37/19:37 IST.
+    - cron: "7 3 * * *"
+    - cron: "7 8 * * *"
+    - cron: "7 14 * * *"
+    # Extra test slot: 05:35 UTC = 11:05 IST.
+    - cron: "35 5 * * *"
   workflow_dispatch: {}
 
 jobs:
