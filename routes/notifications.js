@@ -18,14 +18,14 @@ router.post("/save-push-token", async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Save Expo token
-    if (expoPushToken && !user.expoPushTokens.includes(expoPushToken)) {
-      user.expoPushTokens.push(expoPushToken);
+    // Replace any previously stored Expo token(s) with the latest one
+    if (expoPushToken) {
+      user.expoPushTokens = [expoPushToken];
     }
 
-    // Save FCM token
-    if (fcmToken && !user.fcmTokens.includes(fcmToken)) {
-      user.fcmTokens.push(fcmToken);
+    // Replace any previously stored FCM token(s) with the latest one
+    if (fcmToken) {
+      user.fcmTokens = [fcmToken];
     }
 
     await user.save();
